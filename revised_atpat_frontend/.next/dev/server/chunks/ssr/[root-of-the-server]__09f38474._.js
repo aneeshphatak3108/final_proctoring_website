@@ -110,6 +110,14 @@ const api = {
                 body: JSON.stringify({
                     test_id
                 })
+            }),
+        updateReview: (test_id, student_id, to_review)=>api.request("/flag_routes/updateReview", {
+                method: "POST",
+                body: JSON.stringify({
+                    test_id,
+                    student_id,
+                    to_review
+                })
             })
     }
 };

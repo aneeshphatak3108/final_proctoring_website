@@ -120,3 +120,26 @@ def getflag():
         flags_list.append(flag_obj)
 
     return jsonify({"status": "success", "flags": flags_list}), 200
+
+
+
+@flag_routes.route("/updateReview", methods=["POST"])
+def update_review():
+    data = request.get_json()
+    test_id = data.get("test_id")
+    student_id = data.get("student_id")
+    to_review = data.get("to_review")
+
+    if not test_id or not student_id or to_review is None:
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+    # Update the flag in DB
+    result = flags_db.update_one(
+        {"test_id": test_id, "student_id": student_id},
+        {"$set": {"to_review": to_review}}
+    )
+
+    if result.modified_count == 1:
+        return jsonify({"status": "success", "message": "Review status updated"}), 200
+    else:
+        return jsonify({"status": "error", "message": "Flag not found or no change"}), 404

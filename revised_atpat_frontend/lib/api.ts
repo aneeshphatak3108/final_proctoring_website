@@ -87,5 +87,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ test_id }),
       }),
+  
+    updateReview: (test_id: string, student_id: string, to_review: boolean) =>
+      api.request("/flag_routes/updateReview", {
+        method: "POST",
+        body: JSON.stringify({ test_id, student_id, to_review }),
+      }),
   },
+  
 }
