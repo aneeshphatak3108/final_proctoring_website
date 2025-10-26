@@ -1,4 +1,4 @@
-"use client"
+/*"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -105,6 +105,122 @@ export default function TestDetailPage() {
                   </p>
                   <p className="text-sm">
                     <span className="font-semibold">Description:</span> {flag.description}
+                  </p>
+                  <p className="text-xs text-gray-600">{new Date(flag.timestamp).toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-600">No flags recorded for this test.</p>
+        )}
+      </Card>
+    </main>
+  )
+}
+*/
+
+
+"use client"
+
+import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter, useParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { api } from "@/lib/api"
+
+interface Flag {
+  student_name?: string
+  student_email?: string
+  flag_type: string
+  details: string
+  timestamp: string
+}
+
+export default function TestDetailPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const params = useParams()
+  const testId = params.id as string
+
+  const [flags, setFlags] = useState<Flag[]>([])
+  const [pageLoading, setPageLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login")
+    }
+  }, [user, loading, router])
+
+  useEffect(() => {
+    if (user && testId) {
+      fetchFlags()
+    }
+  }, [user, testId])
+
+  const fetchFlags = async () => {
+    try {
+      const data = await api.flags.getFlags(testId)
+      if (data.status === "success") {
+        setFlags(data.flags)
+      } else {
+        setError("Failed to load flags")
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load flags")
+    } finally {
+      setPageLoading(false)
+    }
+  }
+
+  if (loading || pageLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+
+  if (!user) {
+    return null
+  }
+
+  return (
+    <main className="max-w-7xl mx-auto px-4 py-12">
+      <div className="mb-8">
+        <Button variant="outline" onClick={() => router.back()}>
+          ← Back
+        </Button>
+      </div>
+
+      <Card className="p-6 mb-6">
+        <h1 className="text-3xl font-bold mb-2">Test Flags</h1>
+        <p className="text-gray-600">
+          {user.role === "admin"
+            ? "Below are all the flags raised by students in this test."
+            : "Here are your flags for this test."}
+        </p>
+      </Card>
+
+      {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">{error}</div>}
+
+      <Card className="p-6">
+        <h2 className="text-2xl font-bold mb-4">{user.role === "admin" ? "All Student Flags" : "Your Flags"}</h2>
+
+        {flags && flags.length > 0 ? (
+          <div className="space-y-4">
+            {flags.map((flag, index) => (
+              <div key={index} className="p-4 border rounded-lg bg-gray-50">
+                {user.role === "admin" && (
+                  <div className="mb-2">
+                    <p className="font-semibold">{flag.student_name || "Unknown Student"}</p>
+                    <p className="text-sm text-gray-600">{flag.student_email || "No email"}</p>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    <span className="font-semibold">Flag Type:</span> {flag.flag_type}
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-semibold">Details:</span> {flag.details}
                   </p>
                   <p className="text-xs text-gray-600">{new Date(flag.timestamp).toLocaleString()}</p>
                 </div>

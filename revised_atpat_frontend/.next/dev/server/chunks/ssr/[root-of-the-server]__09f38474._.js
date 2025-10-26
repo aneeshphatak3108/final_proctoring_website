@@ -103,6 +103,14 @@ const api = {
         adminList: ()=>api.request("/test_routes/showtestsadmin"),
         get: (id)=>api.request(`/test_routes/${id}`),
         studentList: ()=>api.request("/test_routes/showtestsstudents")
+    },
+    flags: {
+        getFlags: (test_id)=>api.request("/flag_routes/getflag", {
+                method: "POST",
+                body: JSON.stringify({
+                    test_id
+                })
+            })
     }
 };
 }),

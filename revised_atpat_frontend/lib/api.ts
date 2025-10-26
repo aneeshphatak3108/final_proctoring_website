@@ -80,4 +80,12 @@ export const api = {
     studentList: () => api.request("/test_routes/showtestsstudents")
 
   },
+
+  flags: {
+    getFlags: (test_id: string) =>
+      api.request("/flag_routes/getflag", {
+        method: "POST",
+        body: JSON.stringify({ test_id }),
+      }),
+  },
 }

@@ -6,6 +6,7 @@ from api.config import Config
 from api.utils.db import init_db
 from api.routes.auth_routes import auth_routes
 from api.routes.test_routes import test_routes
+from api.routes.flag_routes import flag_routes
 
 
 def create_app():
@@ -43,5 +44,6 @@ def create_app():
     # ✅ Register blueprints
     app.register_blueprint(auth_routes, url_prefix='/api/auth_routes')
     app.register_blueprint(test_routes, url_prefix='/api/test_routes')
+    app.register_blueprint(flag_routes, url_prefix='/api/flag_routes')
 
     return app
