@@ -104,93 +104,7 @@ function CardFooter({ className, ...props }) {
 "[project]/app/page.tsx [app-ssr] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
-/*"use client"
-
-import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-
-export default function Home() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
-  }
-
-
-  if (!loading) {
-    console.log("Logged in user role:", user?.role)
-  }
-
-
-  if (user?.role === "admin") {
-    return (
-      <main className="max-w-2xl mx-auto px-4 py-12">
-        <Card className="p-8">
-          <h1 className="text-2xl font-bold mb-2">Create Test</h1>
-          <p className="text-gray-600 mb-6">
-            Define the test parameters and upload the students CSV (name, email, id).
-          </p>
-          <Button onClick={() => router.push("/tests/new")} className="w-full">
-            Create Test
-          </Button>
-        </Card>
-      </main>
-    )
-  }
-
-  return (
-    <main className="max-w-7xl mx-auto px-4 py-12">
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold mb-2">ATPAT Proctoring Portal</h1>
-        <p className="text-gray-600">
-          Admins can create tests and view reports. Students can review proctoring flags and submit reconsiderations.
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {user && user.role === "admin" && (
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-2">Create a Test</h2>
-            <p className="text-gray-600 mb-4">Set parent test URL, duration, login window and upload students CSV.</p>
-            <Button onClick={() => router.push("/tests/new")}>Create Test</Button>
-          </Card>
-        )}
-
-        {user && (
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-2">View Tests</h2>
-            <p className="text-gray-600 mb-4">Browse existing tests and check their status.</p>
-            <Button variant="outline" onClick={() => router.push("/tests")}>
-              Open Dashboard
-            </Button>
-          </Card>
-        )}
-
-        {!user && (
-          <>
-            <Card className="p-6">
-              <h2 className="text-xl font-bold mb-2">Create a Test</h2>
-              <p className="text-gray-600 mb-4">Set parent test URL, duration, login window and upload students CSV.</p>
-              <Button onClick={() => router.push("/login")}>Create Test</Button>
-            </Card>
-            <Card className="p-6">
-              <h2 className="text-xl font-bold mb-2">View Tests</h2>
-              <p className="text-gray-600 mb-4">Browse existing tests and check their status.</p>
-              <Button variant="outline" onClick={() => router.push("/login")}>
-                Open Dashboard
-              </Button>
-            </Card>
-          </>
-        )}
-      </div>
-    </main>
-  )
-}
-*/ __turbopack_context__.s([
+__turbopack_context__.s([
     "default",
     ()=>Home
 ]);
@@ -226,7 +140,7 @@ function Home() {
             children: "Loading..."
         }, void 0, false, {
             fileName: "[project]/app/page.tsx",
-            lineNumber: 111,
+            lineNumber: 22,
             columnNumber: 12
         }, this);
     }
@@ -258,7 +172,7 @@ function Home() {
                         children: "ATPAT Proctoring Portal"
                     }, void 0, false, {
                         fileName: "[project]/app/page.tsx",
-                        lineNumber: 137,
+                        lineNumber: 48,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -266,13 +180,13 @@ function Home() {
                         children: "Admins can create tests and view reports. Students can review proctoring flags and submit reconsiderations."
                     }, void 0, false, {
                         fileName: "[project]/app/page.tsx",
-                        lineNumber: 138,
+                        lineNumber: 49,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/page.tsx",
-                lineNumber: 136,
+                lineNumber: 47,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -286,7 +200,7 @@ function Home() {
                                 children: "Create a Test"
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 145,
+                                lineNumber: 56,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -294,7 +208,7 @@ function Home() {
                                 children: "Set parent test URL, duration, login window, and upload students CSV."
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 146,
+                                lineNumber: 57,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
@@ -302,13 +216,13 @@ function Home() {
                                 children: "Create Test"
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 149,
+                                lineNumber: 60,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/page.tsx",
-                        lineNumber: 144,
+                        lineNumber: 55,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
@@ -319,7 +233,7 @@ function Home() {
                                 children: "Open Dashboard"
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 153,
+                                lineNumber: 64,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -327,7 +241,7 @@ function Home() {
                                 children: "Browse existing tests and check their status. Review flags if applicable."
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 154,
+                                lineNumber: 65,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
@@ -336,25 +250,25 @@ function Home() {
                                 children: "Open Dashboard"
                             }, void 0, false, {
                                 fileName: "[project]/app/page.tsx",
-                                lineNumber: 157,
+                                lineNumber: 68,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/page.tsx",
-                        lineNumber: 152,
+                        lineNumber: 63,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/page.tsx",
-                lineNumber: 143,
+                lineNumber: 54,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/page.tsx",
-        lineNumber: 135,
+        lineNumber: 46,
         columnNumber: 5
     }, this);
 }

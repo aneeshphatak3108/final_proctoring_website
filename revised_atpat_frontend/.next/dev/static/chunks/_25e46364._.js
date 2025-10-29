@@ -122,208 +122,7 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 "[project]/app/tests/new/page.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
-/*"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { api } from "@/lib/api"
-
-export default function CreateTestPage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-  const [error, setError] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-
-  const [formData, setFormData] = useState({
-    name: "",
-    parent_test_url: "",
-    duration: "90",
-    login_window_start: "",
-    login_window_end: "",
-    notes: "",
-    send_invites: false,
-  })
-
-  const [csvFile, setCsvFile] = useState<File | null>(null)
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
-  }
-
-
-  if (!user) {
-    router.push("/login")
-    return null
-  }
-
-  if (user.role !== "admin") {
-    return (
-      <main className="flex items-center justify-center min-h-screen">
-        <p className="text-red-600">Only admins can create tests.</p>
-      </main>
-    )
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as any
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }))
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCsvFile(e.target.files?.[0] || null)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setSubmitting(true)
-
-    try {
-      const data = new FormData()
-      Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, String(value))
-      })
-      if (csvFile) {
-        data.append("csv_file", csvFile)
-      }
-
-      await api.tests.create(data)
-      router.push("/tests")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create test")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
-      <Card className="p-8">
-        <h1 className="text-2xl font-bold mb-2">Create Test</h1>
-        <p className="text-gray-600 mb-6">Define the test parameters and upload the students CSV (name, email, id).</p>
-
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">Test name (optional)</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="Midterm - CS101"
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Parent test URL</label>
-            <input
-              type="url"
-              name="parent_test_url"
-              value={formData.parent_test_url}
-              onChange={handleInputChange}
-              placeholder="https://www.hackerrank.com/..."
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-            <input
-              type="number"
-              name="duration"
-              value={formData.duration}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              required
-            />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Login window start</label>
-              <input
-                type="datetime-local"
-                name="login_window_start"
-                value={formData.login_window_start}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Login window end</label>
-              <input
-                type="datetime-local"
-                name="login_window_end"
-                value={formData.login_window_end}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Students CSV</label>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              required
-            />
-            <p className="text-xs text-gray-600 mt-1">CSV columns: name, email, student_id (header row recommended)</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Notes (optional)</label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-              placeholder="Any specific rules or instructions for proctoring..."
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              rows={4}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="send_invites"
-              checked={formData.send_invites}
-              onChange={handleInputChange}
-              className="w-4 h-4"
-            />
-            <label className="text-sm">Send invites to students</label>
-          </div>
-
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Creating..." : "Confirm & Create Test"}
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </main>
-  )
-}
-*/ __turbopack_context__.s([
+__turbopack_context__.s([
     "default",
     ()=>CreateTestPage
 ]);
@@ -365,7 +164,7 @@ function CreateTestPage() {
             children: "Loading..."
         }, void 0, false, {
             fileName: "[project]/app/tests/new/page.tsx",
-            lineNumber: 234,
+            lineNumber: 30,
             columnNumber: 12
         }, this);
     }
@@ -381,12 +180,12 @@ function CreateTestPage() {
                 children: "Only admins can create tests."
             }, void 0, false, {
                 fileName: "[project]/app/tests/new/page.tsx",
-                lineNumber: 245,
+                lineNumber: 41,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/app/tests/new/page.tsx",
-            lineNumber: 244,
+            lineNumber: 40,
             columnNumber: 7
         }, this);
     }
@@ -442,7 +241,7 @@ function CreateTestPage() {
                     children: "Create Test"
                 }, void 0, false, {
                     fileName: "[project]/app/tests/new/page.tsx",
-                    lineNumber: 305,
+                    lineNumber: 101,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -450,7 +249,7 @@ function CreateTestPage() {
                     children: "Define the test parameters and upload the students CSV (name, email, id)."
                 }, void 0, false, {
                     fileName: "[project]/app/tests/new/page.tsx",
-                    lineNumber: 306,
+                    lineNumber: 102,
                     columnNumber: 9
                 }, this),
                 error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -458,7 +257,7 @@ function CreateTestPage() {
                     children: error
                 }, void 0, false, {
                     fileName: "[project]/app/tests/new/page.tsx",
-                    lineNumber: 311,
+                    lineNumber: 107,
                     columnNumber: 11
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -472,7 +271,7 @@ function CreateTestPage() {
                                     children: "Test name (optional)"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 318,
+                                    lineNumber: 114,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -484,13 +283,13 @@ function CreateTestPage() {
                                     className: "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 319,
+                                    lineNumber: 115,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 317,
+                            lineNumber: 113,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -500,7 +299,7 @@ function CreateTestPage() {
                                     children: "Parent test URL"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 330,
+                                    lineNumber: 126,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -513,13 +312,13 @@ function CreateTestPage() {
                                     required: true
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 331,
+                                    lineNumber: 127,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 329,
+                            lineNumber: 125,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -529,7 +328,7 @@ function CreateTestPage() {
                                     children: "Duration (minutes)"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 343,
+                                    lineNumber: 139,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -541,13 +340,13 @@ function CreateTestPage() {
                                     required: true
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 344,
+                                    lineNumber: 140,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 342,
+                            lineNumber: 138,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -560,7 +359,7 @@ function CreateTestPage() {
                                             children: "Login window start"
                                         }, void 0, false, {
                                             fileName: "[project]/app/tests/new/page.tsx",
-                                            lineNumber: 356,
+                                            lineNumber: 152,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -572,13 +371,13 @@ function CreateTestPage() {
                                             required: true
                                         }, void 0, false, {
                                             fileName: "[project]/app/tests/new/page.tsx",
-                                            lineNumber: 357,
+                                            lineNumber: 153,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 355,
+                                    lineNumber: 151,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -588,7 +387,7 @@ function CreateTestPage() {
                                             children: "Login window end"
                                         }, void 0, false, {
                                             fileName: "[project]/app/tests/new/page.tsx",
-                                            lineNumber: 367,
+                                            lineNumber: 163,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -600,19 +399,19 @@ function CreateTestPage() {
                                             required: true
                                         }, void 0, false, {
                                             fileName: "[project]/app/tests/new/page.tsx",
-                                            lineNumber: 368,
+                                            lineNumber: 164,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 366,
+                                    lineNumber: 162,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 354,
+                            lineNumber: 150,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -622,7 +421,7 @@ function CreateTestPage() {
                                     children: "Students CSV"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 380,
+                                    lineNumber: 176,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -633,7 +432,7 @@ function CreateTestPage() {
                                     required: true
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 381,
+                                    lineNumber: 177,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -641,13 +440,13 @@ function CreateTestPage() {
                                     children: "CSV columns: name, email, mis_id (header row recommended)"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 388,
+                                    lineNumber: 184,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 379,
+                            lineNumber: 175,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -657,7 +456,7 @@ function CreateTestPage() {
                                     children: "Notes (optional)"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 394,
+                                    lineNumber: 190,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -669,13 +468,13 @@ function CreateTestPage() {
                                     rows: 4
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 395,
+                                    lineNumber: 191,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 393,
+                            lineNumber: 189,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -689,7 +488,7 @@ function CreateTestPage() {
                                     className: "w-4 h-4"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 406,
+                                    lineNumber: 202,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -697,13 +496,13 @@ function CreateTestPage() {
                                     children: "Send invites to students"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 413,
+                                    lineNumber: 209,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 405,
+                            lineNumber: 201,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -717,7 +516,7 @@ function CreateTestPage() {
                                     children: "Cancel"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 417,
+                                    lineNumber: 213,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -726,30 +525,30 @@ function CreateTestPage() {
                                     children: submitting ? "Creating..." : "Confirm & Create Test"
                                 }, void 0, false, {
                                     fileName: "[project]/app/tests/new/page.tsx",
-                                    lineNumber: 420,
+                                    lineNumber: 216,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/tests/new/page.tsx",
-                            lineNumber: 416,
+                            lineNumber: 212,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/tests/new/page.tsx",
-                    lineNumber: 316,
+                    lineNumber: 112,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/app/tests/new/page.tsx",
-            lineNumber: 304,
+            lineNumber: 100,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/tests/new/page.tsx",
-        lineNumber: 303,
+        lineNumber: 99,
         columnNumber: 5
     }, this);
 }

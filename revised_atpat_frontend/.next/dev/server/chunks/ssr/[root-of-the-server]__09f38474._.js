@@ -33,23 +33,7 @@ __turbopack_context__.s([
 ]);
 const API_BASE = "/api";
 const api = {
-    /*async request(endpoint: string, options: RequestInit = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(error.message || `API error: ${response.status}`)
-    }
-
-    return response.json()
-  },*/ async request (endpoint, options = {}) {
+    async request (endpoint, options = {}) {
         // 🧩 Skip setting Content-Type if body is FormData
         const isFormData = options.body instanceof FormData;
         const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -111,12 +95,19 @@ const api = {
                     test_id
                 })
             }),
-        updateReview: (test_id, student_id, to_review)=>api.request("/flag_routes/updateReview", {
+        updateReview: (test_id, mis_id, to_review)=>api.request("/flag_routes/updateReview", {
                 method: "POST",
                 body: JSON.stringify({
                     test_id,
-                    student_id,
+                    mis_id,
                     to_review
+                })
+            }),
+        deleteFlag: (test_id, mis_id)=>api.request("/flag_routes/deleteFlag", {
+                method: "DELETE",
+                body: JSON.stringify({
+                    test_id,
+                    mis_id
                 })
             })
     }

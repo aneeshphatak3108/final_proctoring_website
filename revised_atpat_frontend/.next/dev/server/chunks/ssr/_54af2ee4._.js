@@ -113,20 +113,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { api } from "@/lib/api"
 
-interface Flag {
-  id: string
-  student_name: string
-  student_email: string
-  flag_type: string
-  description: string
-  timestamp: string
-}
-
-interface TestDetail {
-  id: string
-  name: string
-  parent_test_url: string
-  flags: Flag[]
+interface StudentFlagSummary {
+  mis_id: string
+  student_name?: string
+  student_email?: string
+  to_review: boolean
 }
 
 export default function TestDetailPage() {
@@ -135,43 +126,61 @@ export default function TestDetailPage() {
   const params = useParams()
   const testId = params.id as string
 
-  const [test, setTest] = useState<TestDetail | null>(null)
+  const [students, setStudents] = useState<StudentFlagSummary[]>([])
   const [pageLoading, setPageLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
-    }
+    if (!loading && !user) router.push("/login")
   }, [user, loading, router])
 
   useEffect(() => {
-    if (user && testId) {
-      fetchTestDetail()
-    }
+    if (user && testId) fetchStudentList()
   }, [user, testId])
 
-  const fetchTestDetail = async () => {
+  const fetchStudentList = async () => {
     try {
-      const data = await api.tests.get(testId)
-      setTest(data)
+      const data = await api.flags.getFlags(testId)
+      if (data.status === "success") {
+        // The backend will now return one document per student
+        const sorted = data.flags.sort((a: any, b: any) =>
+          b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1
+        )
+        setStudents(sorted)
+      } else {
+        setError("Failed to load student list")
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load test details")
+      setError(err instanceof Error ? err.message : "Failed to load student list")
     } finally {
       setPageLoading(false)
     }
   }
 
-  if (loading || pageLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  const toggleReview = async (student: StudentFlagSummary) => {
+    try {
+      const response = await api.flags.updateReview(testId, student.mis_id, !student.to_review)
+      if (response.status === "success") {
+        setStudents((prev) =>
+          prev
+            .map((s) =>
+              s.mis_id === student.mis_id ? { ...s, to_review: !s.to_review } : s
+            )
+            .sort((a, b) => (b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1))
+        )
+      } else setError("Failed to update review status")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update review status")
+    }
   }
 
-  if (!user || !test) {
-    return null
-  }
+  if (loading || pageLoading)
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+
+  if (!user) return null
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-12">
+    <main className="max-w-6xl mx-auto px-4 py-12">
       <div className="mb-8">
         <Button variant="outline" onClick={() => router.back()}>
           ← Back
@@ -179,46 +188,54 @@ export default function TestDetailPage() {
       </div>
 
       <Card className="p-6 mb-6">
-        <h1 className="text-3xl font-bold mb-2">{test.name || "Test Details"}</h1>
-        <a
-          href={test.parent_test_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          {test.parent_test_url}
-        </a>
+        <h1 className="text-3xl font-bold mb-2">Test Overview</h1>
+        <p className="text-gray-600">
+          {user.role === "admin"
+            ? "Select a student to view their flag summary."
+            : "Your test activity summary."}
+        </p>
       </Card>
 
-      {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">{error}</div>}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">{error}</div>
+      )}
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-4">{user.role === "admin" ? "All Student Flags" : "Your Flags"}</h2>
+        <h2 className="text-2xl font-bold mb-4">Students</h2>
 
-        {test.flags && test.flags.length > 0 ? (
-          <div className="space-y-4">
-            {test.flags.map((flag) => (
-              <div key={flag.id} className="p-4 border rounded-lg bg-gray-50">
-                {user.role === "admin" && (
-                  <div className="mb-2">
-                    <p className="font-semibold">{flag.student_name}</p>
-                    <p className="text-sm text-gray-600">{flag.student_email}</p>
+        {students.length > 0 ? (
+          <div className="space-y-3">
+            {students.map((s, index) => (
+              <div
+                key={index}
+                className={`p-4 border rounded-lg cursor-pointer transition ${
+                  s.to_review
+                    ? "border-green-500 bg-green-50 hover:bg-green-100"
+                    : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                }`}
+                onClick={() => router.push(`/tests/${testId}/${s.mis_id}`)}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">{s.student_name || "Unknown Student"}</p>
+                    <p className="text-sm text-gray-600">{s.student_email || "No email"}</p>
                   </div>
-                )}
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    <span className="font-semibold">Flag Type:</span> {flag.flag_type}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-semibold">Description:</span> {flag.description}
-                  </p>
-                  <p className="text-xs text-gray-600">{new Date(flag.timestamp).toLocaleString()}</p>
+
+                  <Button
+                    variant={s.to_review ? "default" : "outline"}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleReview(s)
+                    }}
+                  >
+                    {s.to_review ? "Marked for Review" : "Not Marked"}
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-gray-600">No flags recorded for this test.</p>
+          <p className="text-gray-600">No student data available for this test.</p>
         )}
       </Card>
     </main>
@@ -234,12 +251,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { api } from "@/lib/api"
 
-interface Flag {
+interface StudentFlagSummary {
+  mis_id: string
   student_name?: string
   student_email?: string
-  flag_type: string
-  details: string
-  timestamp: string
+  to_review: boolean
 }
 
 export default function TestDetailPage() {
@@ -248,47 +264,74 @@ export default function TestDetailPage() {
   const params = useParams()
   const testId = params.id as string
 
-  const [flags, setFlags] = useState<Flag[]>([])
+  const [students, setStudents] = useState<StudentFlagSummary[]>([])
   const [pageLoading, setPageLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
-    }
+    if (!loading && !user) router.push("/login")
   }, [user, loading, router])
 
   useEffect(() => {
-    if (user && testId) {
-      fetchFlags()
-    }
+    if (user && testId) fetchStudentList()
   }, [user, testId])
 
-  const fetchFlags = async () => {
+  const fetchStudentList = async () => {
     try {
       const data = await api.flags.getFlags(testId)
       if (data.status === "success") {
-        setFlags(data.flags)
+        const sorted = data.flags.sort((a: any, b: any) =>
+          b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1
+        )
+        setStudents(sorted)
       } else {
-        setError("Failed to load flags")
+        setError("Failed to load student list")
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load flags")
+      setError(err instanceof Error ? err.message : "Failed to load student list")
     } finally {
       setPageLoading(false)
     }
   }
 
-  if (loading || pageLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  const toggleReview = async (student: StudentFlagSummary) => {
+    try {
+      const response = await api.flags.updateReview(testId, student.mis_id, !student.to_review)
+      if (response.status === "success") {
+        setStudents((prev) =>
+          prev
+            .map((s) =>
+              s.mis_id === student.mis_id ? { ...s, to_review: !s.to_review } : s
+            )
+            .sort((a, b) => (b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1))
+        )
+      } else setError("Failed to update review status")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update review status")
+    }
   }
 
-  if (!user) {
-    return null
+  const deleteFlag = async (student: StudentFlagSummary) => {
+    if (!confirm(`Are you sure you want to delete ${student.student_name || student.mis_id}'s flag?`)) return
+    try {
+      const response = await api.flags.deleteFlag(testId, student.mis_id)
+      if (response.status === "success") {
+        setStudents((prev) => prev.filter((s) => s.mis_id !== student.mis_id))
+      } else {
+        setError("Failed to delete flag")
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete flag")
+    }
   }
+
+  if (loading || pageLoading)
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+
+  if (!user) return null
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-12">
+    <main className="max-w-6xl mx-auto px-4 py-12">
       <div className="mb-8">
         <Button variant="outline" onClick={() => router.back()}>
           ← Back
@@ -296,43 +339,69 @@ export default function TestDetailPage() {
       </div>
 
       <Card className="p-6 mb-6">
-        <h1 className="text-3xl font-bold mb-2">Test Flags</h1>
+        <h1 className="text-3xl font-bold mb-2">Test Overview</h1>
         <p className="text-gray-600">
           {user.role === "admin"
-            ? "Below are all the flags raised by students in this test."
-            : "Here are your flags for this test."}
+            ? "Select a student to view their flag summary."
+            : "Your test activity summary."}
         </p>
       </Card>
 
-      {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">{error}</div>}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">{error}</div>
+      )}
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-4">{user.role === "admin" ? "All Student Flags" : "Your Flags"}</h2>
+        <h2 className="text-2xl font-bold mb-4">Students</h2>
 
-        {flags && flags.length > 0 ? (
-          <div className="space-y-4">
-            {flags.map((flag, index) => (
-              <div key={index} className="p-4 border rounded-lg bg-gray-50">
-                {user.role === "admin" && (
-                  <div className="mb-2">
-                    <p className="font-semibold">{flag.student_name || "Unknown Student"}</p>
-                    <p className="text-sm text-gray-600">{flag.student_email || "No email"}</p>
+        {students.length > 0 ? (
+          <div className="space-y-3">
+            {students.map((s, index) => (
+              <div
+                key={index}
+                className={`p-4 border rounded-lg cursor-pointer transition ${
+                  s.to_review
+                    ? "border-green-500 bg-green-50 hover:bg-green-100"
+                    : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                }`}
+                onClick={() => router.push(`/tests/${testId}/${s.mis_id}`)}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">{s.student_name || "Unknown Student"}</p>
+                    <p className="text-sm text-gray-600">{s.student_email || "No email"}</p>
                   </div>
-                )}
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    <span className="font-semibold">Flag Type:</span> {flag.flag_type}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-semibold">Details:</span> {flag.details}
-                  </p>
-                  <p className="text-xs text-gray-600">{new Date(flag.timestamp).toLocaleString()}</p>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant={s.to_review ? "default" : "outline"}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleReview(s)
+                      }}
+                    >
+                      {s.to_review ? "Marked for Review" : "Not Marked"}
+                    </Button>
+
+                    {user.role === "admin" && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteFlag(s)
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-gray-600">No flags recorded for this test.</p>
+          <p className="text-gray-600">No student data available for this test.</p>
         )}
       </Card>
     </main>
@@ -362,73 +431,74 @@ function TestDetailPage() {
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRouter"])();
     const params = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useParams"])();
     const testId = params.id;
-    const [flags, setFlags] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [students, setStudents] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [pageLoading, setPageLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(true);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("");
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        if (!loading && !user) {
-            router.push("/login");
-        }
+        if (!loading && !user) router.push("/login");
     }, [
         user,
         loading,
         router
     ]);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        if (user && testId) {
-            fetchFlags();
-        }
+        if (user && testId) fetchStudentList();
     }, [
         user,
         testId
     ]);
-    const fetchFlags = async ()=>{
+    const fetchStudentList = async ()=>{
         try {
             const data = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["api"].flags.getFlags(testId);
             if (data.status === "success") {
-                // Sort flags: to_review=true first
-                const sortedFlags = data.flags.sort((a, b)=>b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1);
-                setFlags(sortedFlags);
+                const sorted = data.flags.sort((a, b)=>b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1);
+                setStudents(sorted);
             } else {
-                setError("Failed to load flags");
+                setError("Failed to load student list");
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load flags");
+            setError(err instanceof Error ? err.message : "Failed to load student list");
         } finally{
             setPageLoading(false);
         }
     };
-    const toggleReview = async (flag)=>{
+    const toggleReview = async (student)=>{
         try {
-            const response = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["api"].flags.updateReview(flag.test_id, flag.student_id, !flag.to_review);
+            const response = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["api"].flags.updateReview(testId, student.mis_id, !student.to_review);
             if (response.status === "success") {
-                setFlags((prev)=>prev.map((f)=>f.test_id === flag.test_id && f.student_id === flag.student_id ? {
-                            ...f,
-                            to_review: !f.to_review
-                        } : f).sort((a, b)=>b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1) // Keep sorted after toggle
-                );
-            } else {
-                setError("Failed to update review status");
-            }
+                setStudents((prev)=>prev.map((s)=>s.mis_id === student.mis_id ? {
+                            ...s,
+                            to_review: !s.to_review
+                        } : s).sort((a, b)=>b.to_review === a.to_review ? 0 : b.to_review ? 1 : -1));
+            } else setError("Failed to update review status");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to update review status");
         }
     };
-    if (loading || pageLoading) {
-        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            className: "flex items-center justify-center min-h-screen",
-            children: "Loading..."
-        }, void 0, false, {
-            fileName: "[project]/app/tests/[id]/page.tsx",
-            lineNumber: 325,
-            columnNumber: 12
-        }, this);
-    }
-    if (!user) {
-        return null;
-    }
+    const deleteFlag = async (student)=>{
+        if (!confirm(`Are you sure you want to delete ${student.student_name || student.mis_id}'s flag?`)) return;
+        try {
+            const response = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["api"].flags.deleteFlag(testId, student.mis_id);
+            if (response.status === "success") {
+                setStudents((prev)=>prev.filter((s)=>s.mis_id !== student.mis_id));
+            } else {
+                setError("Failed to delete flag");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to delete flag");
+        }
+    };
+    if (loading || pageLoading) return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "flex items-center justify-center min-h-screen",
+        children: "Loading..."
+    }, void 0, false, {
+        fileName: "[project]/app/tests/[id]/page.tsx",
+        lineNumber: 402,
+        columnNumber: 12
+    }, this);
+    if (!user) return null;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
-        className: "max-w-7xl mx-auto px-4 py-12",
+        className: "max-w-6xl mx-auto px-4 py-12",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "mb-8",
@@ -438,12 +508,12 @@ function TestDetailPage() {
                     children: "← Back"
                 }, void 0, false, {
                     fileName: "[project]/app/tests/[id]/page.tsx",
-                    lineNumber: 335,
+                    lineNumber: 409,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/tests/[id]/page.tsx",
-                lineNumber: 334,
+                lineNumber: 408,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
@@ -451,24 +521,24 @@ function TestDetailPage() {
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                         className: "text-3xl font-bold mb-2",
-                        children: "Test Flags"
+                        children: "Test Overview"
                     }, void 0, false, {
                         fileName: "[project]/app/tests/[id]/page.tsx",
-                        lineNumber: 341,
+                        lineNumber: 415,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                         className: "text-gray-600",
-                        children: user.role === "admin" ? "Below are all the flags raised by students in this test." : "Here are your flags for this test."
+                        children: user.role === "admin" ? "Select a student to view their flag summary." : "Your test activity summary."
                     }, void 0, false, {
                         fileName: "[project]/app/tests/[id]/page.tsx",
-                        lineNumber: 342,
+                        lineNumber: 416,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/tests/[id]/page.tsx",
-                lineNumber: 340,
+                lineNumber: 414,
                 columnNumber: 7
             }, this),
             error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -476,149 +546,120 @@ function TestDetailPage() {
                 children: error
             }, void 0, false, {
                 fileName: "[project]/app/tests/[id]/page.tsx",
-                lineNumber: 349,
-                columnNumber: 17
+                lineNumber: 424,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
                 className: "p-6",
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                         className: "text-2xl font-bold mb-4",
-                        children: user.role === "admin" ? "All Student Flags" : "Your Flags"
+                        children: "Students"
                     }, void 0, false, {
                         fileName: "[project]/app/tests/[id]/page.tsx",
-                        lineNumber: 352,
+                        lineNumber: 428,
                         columnNumber: 9
                     }, this),
-                    flags && flags.length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "space-y-4",
-                        children: flags.map((flag, index)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: `p-4 border rounded-lg ${flag.to_review ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50"}`,
-                                children: [
-                                    user.role === "admin" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "mb-2",
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "font-semibold",
-                                                children: flag.student_name || "Unknown Student"
-                                            }, void 0, false, {
-                                                fileName: "[project]/app/tests/[id]/page.tsx",
-                                                lineNumber: 365,
-                                                columnNumber: 21
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "text-sm text-gray-600",
-                                                children: flag.student_email || "No email"
-                                            }, void 0, false, {
-                                                fileName: "[project]/app/tests/[id]/page.tsx",
-                                                lineNumber: 366,
-                                                columnNumber: 21
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/app/tests/[id]/page.tsx",
-                                        lineNumber: 364,
-                                        columnNumber: 19
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "space-y-2",
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "text-sm",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "font-semibold",
-                                                        children: "Flag Type:"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/app/tests/[id]/page.tsx",
-                                                        lineNumber: 372,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    " ",
-                                                    flag.flag_type
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/app/tests/[id]/page.tsx",
-                                                lineNumber: 371,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "text-sm",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "font-semibold",
-                                                        children: "Details:"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/app/tests/[id]/page.tsx",
-                                                        lineNumber: 375,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    " ",
-                                                    flag.details
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/app/tests/[id]/page.tsx",
-                                                lineNumber: 374,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "text-xs text-gray-600",
-                                                children: new Date(flag.timestamp).toLocaleString()
-                                            }, void 0, false, {
-                                                fileName: "[project]/app/tests/[id]/page.tsx",
-                                                lineNumber: 377,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "mt-2",
-                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                    onClick: ()=>toggleReview(flag),
-                                                    className: `px-2 py-1 rounded ${flag.to_review ? "bg-green-600 text-white" : "bg-gray-300 text-gray-800"}`,
-                                                    children: flag.to_review ? "Marked for Review" : "Not Marked for Review"
+                    students.length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "space-y-3",
+                        children: students.map((s)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: `p-4 border rounded-lg cursor-pointer transition ${s.to_review ? "border-green-500 bg-green-50 hover:bg-green-100" : "border-gray-300 bg-gray-50 hover:bg-gray-100"}`,
+                                onClick: ()=>router.push(`/tests/${testId}/${s.mis_id}`),
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "flex justify-between items-center",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                    className: "font-semibold",
+                                                    children: s.student_name || "Unknown Student"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/tests/[id]/page.tsx",
-                                                    lineNumber: 380,
+                                                    lineNumber: 444,
+                                                    columnNumber: 21
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                    className: "text-sm text-gray-600",
+                                                    children: s.student_email || "No email"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/tests/[id]/page.tsx",
+                                                    lineNumber: 445,
                                                     columnNumber: 21
                                                 }, this)
-                                            }, void 0, false, {
-                                                fileName: "[project]/app/tests/[id]/page.tsx",
-                                                lineNumber: 379,
-                                                columnNumber: 19
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/app/tests/[id]/page.tsx",
-                                        lineNumber: 370,
-                                        columnNumber: 17
-                                    }, this)
-                                ]
-                            }, index, true, {
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/tests/[id]/page.tsx",
+                                            lineNumber: 443,
+                                            columnNumber: 19
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "flex items-center gap-3",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
+                                                    variant: s.to_review ? "default" : "outline",
+                                                    onClick: (e)=>{
+                                                        e.stopPropagation();
+                                                        toggleReview(s);
+                                                    },
+                                                    children: s.to_review ? "Marked for Review" : "Not Marked"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/tests/[id]/page.tsx",
+                                                    lineNumber: 449,
+                                                    columnNumber: 21
+                                                }, this),
+                                                user.role === "admin" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
+                                                    variant: "outline",
+                                                    size: "sm",
+                                                    className: "bg-black text-white hover:bg-gray-800",
+                                                    onClick: (e)=>{
+                                                        e.stopPropagation();
+                                                        deleteFlag(s);
+                                                    },
+                                                    children: "Delete"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/tests/[id]/page.tsx",
+                                                    lineNumber: 460,
+                                                    columnNumber: 23
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/tests/[id]/page.tsx",
+                                            lineNumber: 448,
+                                            columnNumber: 19
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/app/tests/[id]/page.tsx",
+                                    lineNumber: 442,
+                                    columnNumber: 17
+                                }, this)
+                            }, s.mis_id, false, {
                                 fileName: "[project]/app/tests/[id]/page.tsx",
-                                lineNumber: 357,
+                                lineNumber: 433,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/app/tests/[id]/page.tsx",
-                        lineNumber: 355,
+                        lineNumber: 431,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                         className: "text-gray-600",
-                        children: "No flags recorded for this test."
+                        children: "No student data available for this test."
                     }, void 0, false, {
                         fileName: "[project]/app/tests/[id]/page.tsx",
-                        lineNumber: 394,
+                        lineNumber: 478,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/tests/[id]/page.tsx",
-                lineNumber: 351,
+                lineNumber: 427,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/tests/[id]/page.tsx",
-        lineNumber: 333,
+        lineNumber: 407,
         columnNumber: 5
     }, this);
 }

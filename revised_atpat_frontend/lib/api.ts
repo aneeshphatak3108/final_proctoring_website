@@ -3,23 +3,6 @@
 const API_BASE = "/api";
 
 export const api = {
-  /*async request(endpoint: string, options: RequestInit = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(error.message || `API error: ${response.status}`)
-    }
-
-    return response.json()
-  },*/
 
   async request(endpoint: string, options: RequestInit = {}) {
     // 🧩 Skip setting Content-Type if body is FormData
@@ -88,11 +71,18 @@ export const api = {
         body: JSON.stringify({ test_id }),
       }),
   
-    updateReview: (test_id: string, student_id: string, to_review: boolean) =>
+    updateReview: (test_id: string, mis_id: string, to_review: boolean) =>
       api.request("/flag_routes/updateReview", {
         method: "POST",
-        body: JSON.stringify({ test_id, student_id, to_review }),
+        body: JSON.stringify({ test_id, mis_id, to_review }),
       }),
+
+    deleteFlag: (test_id: string, mis_id: string) =>
+      api.request("/flag_routes/deleteFlag", {
+        method: "DELETE",
+        body: JSON.stringify({ test_id, mis_id }),
+      }),
+
   },
   
 }
